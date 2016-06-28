@@ -1,0 +1,69 @@
+#!/usr/bin/python
+
+import sys
+from optparse import OptionParser
+import datetime
+import json
+import os
+
+try:  # py3
+    from shlex import quote
+except ImportError:  # py2
+    from pipes import quote
+
+parser = OptionParser()
+parser.add_option("-c", "--cycle", dest='cycle', help='Analysis time')
+parser.add_option("-t", "--time-sendt", dest='time_sendt', help='The time(s) we tried to send this message')
+parser.add_option("-n", "--event-name", dest='event_name', help='model_start, model_end, etc')
+parser.add_option("-d", "--event-target", dest='event_target', help='Which target is this about (ie. model-name)')
+parser.add_option("-s", "--event-source", dest='event_source', help='What sendt this event')
+
+# TODO: Add support for abritary key-value pairs. like -k meps_member=7,filetype=grib,hour=66,product=sfx, .....
+
+#if len(sys.argv[1:]) == 0:
+#    print "Want an argument! no argument given!"
+#    parser.print_help()
+#    exit(-1)
+
+#print "Number of Arguments %d" % len(sys.argv[1:])
+utc_datetime = datetime.datetime.utcnow()
+try:
+    (options, args) = parser.parse_args()
+
+    if options.cycle is None:
+        #options.cycle = raw_input('model_cycle:')
+        options.cycle = utc_datetime.strftime("%H")
+    if options.time_sendt is None:
+        #options.message_sendt_at = raw_input('sendt_message_at:')
+        options.time_sendt = utc_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    if options.event_name is None:
+        options.event_name = raw_input('event_name:')
+
+    if options.event_target is None:
+        options.event_target = raw_input('event_target:')
+
+    if options.event_source is None:
+        options.event_source = raw_input('event_source:')
+
+except:
+    parser.print_help()
+    sys.exit(-1)
+
+
+
+termin = utc_datetime.strftime("%Y%m%dT") + options.cycle + "Z"
+payload = {
+    'termin': termin,
+    'event_name': options.event_name,
+    'event_target': options.event_target,
+    'time_sendt': options.time_sendt,
+    'event_source': options.event_source
+}
+
+#print "Sending payload: " + quote(json.dumps(payload))
+sendcmd = "'echo \"" + quote(json.dumps(payload)) + "\" | /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null' "
+cmd = "ssh ubuntu@os-157-249-176-113.ares.met.no %s" % (sendcmd)
+#print "Doing: %s " % cmd
+os.system(cmd)
+
