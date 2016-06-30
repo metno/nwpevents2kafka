@@ -17,16 +17,10 @@ parser.add_option("-t", "--time-sendt", dest='time_sendt', help='The time(s) we 
 parser.add_option("-n", "--event-name", dest='event_name', help='model_start, model_end, etc')
 parser.add_option("-d", "--event-target", dest='event_target', help='Which target is this about (ie. model-name)')
 parser.add_option("-s", "--event-source", dest='event_source', help='What sendt this event')
+parser.add_option("-k", "--keyvalue-pairs", dest='kvpairs', help='Optional additional key value pairs')
 
-# TODO: Add support for abritary key-value pairs. like -k meps_member=7,filetype=grib,hour=66,product=sfx, .....
-
-#if len(sys.argv[1:]) == 0:
-#    print "Want an argument! no argument given!"
-#    parser.print_help()
-#    exit(-1)
-
-#print "Number of Arguments %d" % len(sys.argv[1:])
 utc_datetime = datetime.datetime.utcnow()
+kvpairs = {}
 try:
     (options, args) = parser.parse_args()
 
@@ -45,6 +39,13 @@ try:
 
     if options.event_source is None:
         options.event_source = raw_input('event_source:')
+    
+    if options.kvpairs:
+        arr = options.kvpairs.split(',')
+        for e in arr:
+            kv=e.split('=')
+            kvpairs[kv[0]] = kv[1]
+
 
 except:
     parser.print_help()
@@ -60,6 +61,10 @@ payload = {
     'time_sendt': options.time_sendt,
     'event_source': options.event_source
 }
+
+# Add abritary key value paris
+for k in kvpairs:
+    payload[k] = kvpairs[k]
 
 #print "Sending payload: " + quote(json.dumps(payload))
 sendcmd = "'echo \"" + quote(json.dumps(payload)) + "\" | /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null' "
