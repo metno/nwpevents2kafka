@@ -55,7 +55,7 @@ except:
 
 termin = utc_datetime.strftime("%Y%m%dT") + options.cycle + "Z"
 payload = {
-    'termin': termin,
+    'termin':  termin ,
     'event_name': options.event_name,
     'event_target': options.event_target,
     'time_sendt': options.time_sendt,
@@ -67,8 +67,12 @@ for k in kvpairs:
     payload[k] = kvpairs[k]
 
 #print "Sending payload: " + quote(json.dumps(payload))
-sendcmd = "'echo \"" + quote(json.dumps(payload)) + "\" | /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null' "
-cmd = "ssh ubuntu@os-157-249-176-113.ares.met.no %s" % (sendcmd)
-#print "Doing: %s " % cmd
-os.system(cmd)
+#sendcmd = "echo " + quote(json.dumps(payload)) + """| /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null " """
+
+sendcmd = """
+ ssh -T ubuntu@os-157-249-176-113.ares.met.no 2>&1 > /dev/null <<'EOF'
+echo """ + quote(json.dumps(payload)) + """ | /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null
+EOF
+"""
+os.system(sendcmd + " 2>&1 > /dev/null")
 
