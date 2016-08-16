@@ -5,11 +5,24 @@ from optparse import OptionParser
 import datetime
 import json
 import os
+import subprocess
 
 try:  # py3
     from shlex import quote
 except ImportError:  # py2
     from pipes import quote
+
+
+def get_loginhost(server_list):
+    for server in server_list:
+        process = subprocess.Popen("ssh -o ConnectTimeout=45 ubuntu@" + server + " /bin/true", shell=True,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output,stderr = process.communicate()
+        status = process.poll()
+        if status == 0:
+            return server
+    return None
+
 
 parser = OptionParser()
 parser.add_option("-c", "--cycle", dest='cycle', help='Analysis time')
@@ -66,13 +79,41 @@ payload = {
 for k in kvpairs:
     payload[k] = kvpairs[k]
 
-#print "Sending payload: " + quote(json.dumps(payload))
-#sendcmd = "echo " + quote(json.dumps(payload)) + """| /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null " """
+scriptdir = os.path.dirname(os.path.abspath(__file__))
+logfile = scriptdir + "/" + "events.log"
+
+
+#console_producer = "/home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh"
+console_producer = "/opt/kafka/kafka_2.11-0.10.0.0/bin/kafka-console-producer.sh"
+server_list = [
+               'os-157-249-176-211.ares.met.no',
+               'os-157-249-176-212.ares.met.no',
+               'os-157-249-176-215.ares.met.no',
+               ]
+
+broker_list=""
+for server in server_list:
+    broker_list += server + ":9092," 
+
+login_host = get_loginhost(server_list)
 
 sendcmd = """
- ssh -T ubuntu@os-157-249-176-113.ares.met.no 2>&1 > /dev/null <<'EOF'
-echo """ + quote(json.dumps(payload)) + """ | /home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic modelevents 2&>1 > /dev/null
+ ssh -T ubuntu@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
+echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic modelevents 2&>1 > /dev/null
 EOF
 """
-os.system(sendcmd + " 2>&1 > /dev/null")
 
+if login_host is not None:
+    retval = os.system(sendcmd + " 2>&1 > /dev/null")
+    if retval != 0:
+        os.system("echo send event failed: " + retval + " >> " + logfile)
+    else:
+        logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
+        os.system(logcmd)
+else:
+    os.system("echo No ssh login hosts available! >>"   + logfile )
+
+
+# "Rotate" log.
+os.system("tail -100 " + logfile + " > " + logfile + ".tmp")
+os.system("mv " + logfile + ".tmp " + logfile)
