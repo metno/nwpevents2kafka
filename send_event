@@ -15,7 +15,7 @@ except ImportError:  # py2
 
 def get_loginhost(server_list):
     for server in server_list:
-        process = subprocess.Popen("ssh -o ConnectTimeout=45 ubuntu@" + server + " /bin/true", shell=True,
+        process = subprocess.Popen("ssh -o ConnectTimeout=45 kafka@" + server + " /bin/true", shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output,stderr = process.communicate()
         status = process.poll()
@@ -84,11 +84,17 @@ logfile = scriptdir + "/" + "events.log"
 
 
 #console_producer = "/home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh"
+#server_list = [
+#               'os-157-249-176-113.ares.met.no',
+#               ]
+
 console_producer = "/opt/kafka/kafka_2.11-0.10.0.0/bin/kafka-console-producer.sh"
 server_list = [
+               'os-157-249-176-210.ares.met.no',
                'os-157-249-176-211.ares.met.no',
                'os-157-249-176-212.ares.met.no',
-               'os-157-249-176-215.ares.met.no',
+               'os-157-249-176-213.ares.met.no',
+               'os-157-249-176-214.ares.met.no',
                ]
 
 broker_list=""
@@ -98,11 +104,10 @@ for server in server_list:
 login_host = get_loginhost(server_list)
 
 sendcmd = """
- ssh -T ubuntu@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
+ ssh -T kafka@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
 echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic modelevents 2&>1 > /dev/null
 EOF
 """
-
 if login_host is not None:
     retval = os.system(sendcmd + " 2>&1 > /dev/null")
     if retval != 0:
