@@ -31,6 +31,7 @@ parser.add_option("-n", "--event-name", dest='event_name', help='model_start, mo
 parser.add_option("-d", "--event-target", dest='event_target', help='Which target is this about (ie. model-name)')
 parser.add_option("-s", "--event-source", dest='event_source', help='What sendt this event')
 parser.add_option("-k", "--keyvalue-pairs", dest='kvpairs', help='Optional additional key value pairs')
+parser.add_option("-q", "--queue-topic", dest='topic', help='Optional topic name. Defaults to "modelevents"')
 
 utc_datetime = datetime.datetime.utcnow()
 kvpairs = {}
@@ -59,6 +60,8 @@ try:
             kv=e.split('=')
             kvpairs[kv[0]] = kv[1]
 
+    if options.topic is None:
+        options.topic = "modelevents"
 
 except:
     parser.print_help()
@@ -105,7 +108,7 @@ login_host = get_loginhost(server_list)
 
 sendcmd = """
  ssh -T kafka@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
-echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic modelevents 2&>1 > /dev/null
+echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  2&>1 > /dev/null
 EOF
 """
 if login_host is not None:
