@@ -75,7 +75,8 @@ payload = {
     'event_name': options.event_name,
     'event_target': options.event_target,
     'time_sendt': options.time_sendt,
-    'event_source': options.event_source
+    'event_source': options.event_source,
+    'cycle': options.cycle
 }
 
 # Add abritary key value paris
@@ -107,20 +108,22 @@ for server in server_list:
 login_host = get_loginhost(server_list)
 
 sendcmd = """
- ssh -T kafka@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
+ ssh kafka@""" + login_host + """ 2>&1 > /dev/null <<'EOF'
 echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  2&>1 > /dev/null
 EOF
 """
+#print sendcmd
 if login_host is not None:
     retval = os.system(sendcmd + " 2>&1 > /dev/null")
     if retval != 0:
         os.system("echo send event failed: " + retval + " >> " + logfile)
+        exit(retval)
     else:
         logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
         os.system(logcmd)
 else:
     os.system("echo No ssh login hosts available! >>"   + logfile )
-
+    exit(-1)
 
 # "Rotate" log.
 os.system("tail -100 " + logfile + " > " + logfile + ".tmp")
