@@ -6,6 +6,7 @@ import datetime
 import json
 import os
 import subprocess
+import random
 
 try:  # py3
     from shlex import quote
@@ -15,7 +16,7 @@ except ImportError:  # py2
 
 def get_loginhost(server_list):
     for server in server_list:
-        process = subprocess.Popen("ssh -o ConnectTimeout=10 kafka@" + server + " /bin/true", shell=True,
+        process = subprocess.Popen("ssh  -o StrictHostKeyChecking=no -o ConnectTimeout=10 kafka@" + server + " /bin/true", shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output,stderr = process.communicate()
         status = process.poll()
@@ -84,7 +85,7 @@ for k in kvpairs:
     payload[k] = kvpairs[k]
 
 scriptdir = os.path.dirname(os.path.abspath(__file__))
-logfile = scriptdir + "/" + "events.log"
+logfile = "/tmp/" + "events.log-" +  os.environ['USER']
 
 
 #console_producer = "/home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh"
@@ -101,6 +102,7 @@ server_list = [
                'os-157-249-176-214.ares.met.no',
                ]
 
+random.shuffle(server_list)
 broker_list=""
 for server in server_list:
     broker_list += server + ":9092," 
@@ -111,7 +113,7 @@ if login_host is None:
     exit(-1)
 
 sendcmd = """
-ssh kafka@""" + login_host + """ 2>&1 > /dev/null /bin/bash <<'EOF'
+ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ 2>&1 > /dev/null /bin/bash <<'EOF'
 echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  2&>1 > /dev/null
 EOF
 """
