@@ -15,7 +15,7 @@ except ImportError:  # py2
 
 def get_loginhost(server_list):
     for server in server_list:
-        process = subprocess.Popen("ssh -o ConnectTimeout=45 kafka@" + server + " /bin/true", shell=True,
+        process = subprocess.Popen("ssh -o ConnectTimeout=10 kafka@" + server + " /bin/true", shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output,stderr = process.communicate()
         status = process.poll()
@@ -106,24 +106,25 @@ for server in server_list:
     broker_list += server + ":9092," 
 
 login_host = get_loginhost(server_list)
+if login_host is None:
+    os.system("echo No ssh login hosts available! >>"   + logfile )
+    exit(-1)
 
 sendcmd = """
- ssh kafka@""" + login_host + """ 2>&1 > /dev/null /bin/bash <<'EOF'
+ssh kafka@""" + login_host + """ 2>&1 > /dev/null /bin/bash <<'EOF'
 echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  2&>1 > /dev/null
 EOF
 """
+
 #print sendcmd
-if login_host is not None:
-    retval = os.system(sendcmd + " 2>&1 > /dev/null")
-    if retval != 0:
-        os.system("echo send event failed: " + retval + " >> " + logfile)
-        exit(retval)
-    else:
-        logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
-        os.system(logcmd)
+
+retval = os.system(sendcmd + " 2>&1 > /dev/null")
+if retval != 0:
+    os.system("echo send event failed: " + retval + " >> " + logfile)
+    exit(retval)
 else:
-    os.system("echo No ssh login hosts available! >>"   + logfile )
-    exit(-1)
+    logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
+    os.system(logcmd)
 
 # "Rotate" log.
 os.system("tail -100 " + logfile + " > " + logfile + ".tmp")
