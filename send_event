@@ -7,12 +7,16 @@ import json
 import os
 import subprocess
 import random
+import socket
+import smtplib
 
 try:  # py3
     from shlex import quote
 except ImportError:  # py2
     from pipes import quote
 
+
+logfile = "/tmp/" + "events.log-" +  os.environ['USER']
 
 def get_loginhost(server_list):
     for server in server_list:
@@ -23,6 +27,25 @@ def get_loginhost(server_list):
         if status == 0:
             return server
     return None
+
+
+def send_mail(body):
+    sender = os.environ['USER'] + "@" + socket.gethostname()
+    receivers = ",".join(['espenm@met.no'])
+
+    message = """From: <%s>
+To: %s
+Subject: Error sending event from %s@%s
+
+%s
+""" % (sender, os.environ['USER'], socket.gethostname(), receivers, body)
+
+    try:
+        smtpObj = smtplib.SMTP('localhost')
+        smtpObj.sendmail(sender, receivers, message)         
+    except SMTPException:
+        os.system("echo Error: unable to send emai " + " >> " + logfile)
+
 
 
 parser = OptionParser()
@@ -85,7 +108,7 @@ for k in kvpairs:
     payload[k] = kvpairs[k]
 
 scriptdir = os.path.dirname(os.path.abspath(__file__))
-logfile = "/tmp/" + "events.log-" +  os.environ['USER']
+
 
 
 #console_producer = "/home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh"
@@ -110,6 +133,7 @@ for server in server_list:
 login_host = get_loginhost(server_list)
 if login_host is None:
     os.system("echo No ssh login hosts available! >>"   + logfile )
+    send_mail("send event failed. No ssh login hosts available!\n")
     exit(-1)
 
 sendcmd = """
@@ -123,6 +147,7 @@ EOF
 retval = os.system(sendcmd + " 2>&1 > /dev/null")
 if retval != 0:
     os.system("echo send event failed: " + retval + " >> " + logfile)
+    send_mail("send event command failed. The command was: \n" + sendcmd)
     exit(retval)
 else:
     logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
