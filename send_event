@@ -21,7 +21,7 @@ logfile = "/tmp/" + "events.log-" +  os.environ['USER']
 def get_loginhost(server_list):
     for server in server_list:
         process = subprocess.Popen("ssh  -o StrictHostKeyChecking=no -o ConnectTimeout=10 kafka@" + server + " /bin/true", shell=True,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output,stderr = process.communicate()
         status = process.poll()
         if status == 0:
