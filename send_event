@@ -9,6 +9,10 @@ import subprocess
 import random
 import socket
 import smtplib
+import time
+
+from random import randint
+from time import sleep
 
 try:  # py3
     from shlex import quote
@@ -26,6 +30,7 @@ def get_loginhost(server_list):
         status = process.poll()
         if status == 0:
             return server
+        
     return None
 
 
@@ -130,29 +135,46 @@ broker_list=""
 for server in server_list:
     broker_list += server + ":9092," 
 
-login_host = get_loginhost(server_list)
+
+login_host = None
+for x in range(0, 7):
+    login_host = get_loginhost(server_list)
+    if login_host is None:
+        time.sleep(4)
+
 if login_host is None:
-    os.system("echo No ssh login hosts available! >>"   + logfile )
     send_mail("send event failed. No ssh login hosts available!\n")
     exit(-1)
 
 sendcmd = """
-ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ 2>&1 > /dev/null /bin/bash <<'EOF'
-echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  2&>1 > /dev/null
+ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ /bin/bash <<'EOF'
+set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  
 EOF
 """
 
-#print sendcmd
+print sendcmd
 
-retval = os.system(sendcmd + " 2>&1 > /dev/null")
-if retval != 0:
-    os.system("echo send event failed: " + retval + " >> " + logfile)
-    send_mail("send event command failed. The command was: \n" + sendcmd)
-    exit(retval)
-else:
-    logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
-    os.system(logcmd)
+process = subprocess.Popen(sendcmd, shell=True,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT,
+                           close_fds=True)
+output, stderr = process.communicate()
+status = process.poll()
+print("OUTPUT: " + output.decode("utf-8"))
+print(stderr)
+if ( status != 0 ):
+    print(output.decode("utf-8"))
+    print(stderr)
+
+#retval = os.system(sendcmd)
+#if retval != 0:
+#    os.system("echo send event failed: " + retval + " >> " + logfile)
+#    send_mail("send event command failed. The command was: \n" + sendcmd)
+#    exit(retval)
+#else:
+#    logcmd = "echo " + quote(json.dumps(payload)) + " >> " + logfile
+#    os.system(logcmd)
 
 # "Rotate" log.
-os.system("tail -100 " + logfile + " > " + logfile + ".tmp")
-os.system("mv " + logfile + ".tmp " + logfile)
+#os.system("tail -100 " + logfile + " > " + logfile + ".tmp")
+#os.system("mv " + logfile + ".tmp " + logfile)
