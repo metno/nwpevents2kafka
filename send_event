@@ -148,7 +148,7 @@ if login_host is None:
 
 sendcmd = """
 ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ /bin/bash <<'EOF'
-set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  
+set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  --request-required-acks 1 
 EOF
 """
 
