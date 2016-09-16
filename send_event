@@ -19,15 +19,44 @@ try:  # py3
 except ImportError:  # py2
     from pipes import quote
 
+def print_version():
+    send_event_version = "alfa-baluba"
+    print("%s version: %s" % (sys.argv[0], send_event_version))
+
+for x in xrange(len(sys.argv)):
+    if sys.argv[x-1] == '-v':
+        print_version()
+        sys.exit(0)        
+
+    if sys.argv[x-1] == '--version':
+        print_version()
+        sys.exit(0)        
+
+
+
+
+#if '-v' or '--version' in sys.argv: 
+#    print_version();
+#    sys.exit(0)
+
+
+
+
 
 logfile = "/tmp/" + "events.log-" +  os.environ['USER']
 
 def get_loginhost(server_list):
     for server in server_list:
-        process = subprocess.Popen("ssh  -o StrictHostKeyChecking=no -o ConnectTimeout=10 kafka@" + server + " /bin/true", shell=True,
+
+        cmd = "ssh  -o ConnectionAttempts=2 -o StrictHostKeyChecking=no -o ConnectTimeout=4 kafka@" + server + " /bin/true"
+        print "Doing %s" % cmd
+        process = subprocess.Popen(cmd, shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output,stderr = process.communicate()
         status = process.poll()
+        #if ( status != 0 ):
+        #    print(output.decode("utf-8"))
+        #    print(stderr)
         if status == 0:
             return server
         
@@ -52,7 +81,6 @@ Subject: Error sending event from %s@%s
         os.system("echo Error: unable to send emai " + " >> " + logfile)
 
 
-
 parser = OptionParser()
 parser.add_option("-c", "--cycle", dest='cycle', help='Analysis time')
 parser.add_option("-t", "--time-sendt", dest='time_sendt', help='The time(s) we tried to send this message')
@@ -61,6 +89,8 @@ parser.add_option("-d", "--event-target", dest='event_target', help='Which targe
 parser.add_option("-s", "--event-source", dest='event_source', help='What sendt this event')
 parser.add_option("-k", "--keyvalue-pairs", dest='kvpairs', help='Optional additional key value pairs')
 parser.add_option("-q", "--queue-topic", dest='topic', help='Optional topic name. Defaults to "modelevents"')
+parser.add_option("-v", "--version", dest="version", help='Version')
+#parser.add_option("-v", "--version")
 
 utc_datetime = datetime.datetime.utcnow()
 kvpairs = {}
@@ -91,6 +121,7 @@ try:
 
     if options.topic is None:
         options.topic = "modelevents"
+
 
 except:
     parser.print_help()
@@ -137,22 +168,25 @@ for server in server_list:
 
 
 login_host = None
-for x in range(0, 7):
+for x in range(0, 6):
     login_host = get_loginhost(server_list)
     if login_host is None:
-        time.sleep(4)
+        time.sleep(3)
+    else:
+        break
 
 if login_host is None:
-    send_mail("send event failed. No ssh login hosts available!\n")
+    send_mail("send event failed. No ssh login hosts available!\n" + quote(json.dumps(payload)))
+    print("ERROR send_even failed. No ssh login hosts available!. payload was: %s" % quote(json.dumps(payload)))
     exit(-1)
 
 sendcmd = """
 ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ /bin/bash <<'EOF'
-set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """  --request-required-acks 1 
+set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """ --request-required-acks 1  
 EOF
 """
 
-print sendcmd
+#print sendcmd
 
 process = subprocess.Popen(sendcmd, shell=True,
                            stdout=subprocess.PIPE,
@@ -160,11 +194,12 @@ process = subprocess.Popen(sendcmd, shell=True,
                            close_fds=True)
 output, stderr = process.communicate()
 status = process.poll()
-print("OUTPUT: " + output.decode("utf-8"))
-print(stderr)
+
 if ( status != 0 ):
-    print(output.decode("utf-8"))
-    print(stderr)
+    print "ERROR: Send_event failed: %d" % (status) 
+    #print(output.decode("utf-8"))
+    #print(stderr)
+    send_mail("send event command failed. The command was: \n" + sendcmd + "\n output: " + output.decode("utf-8") + "\n stderr: " + stderr)
 
 #retval = os.system(sendcmd)
 #if retval != 0:
