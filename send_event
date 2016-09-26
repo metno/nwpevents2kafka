@@ -77,7 +77,7 @@ Subject: Error sending event from %s@%s
     try:
         smtpObj = smtplib.SMTP('localhost')
         smtpObj.sendmail(sender, receivers, message)         
-    except SMTPException:
+    except smtplib.SMTPException:
         os.system("echo Error: unable to send emai " + " >> " + logfile)
 
 
