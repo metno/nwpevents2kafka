@@ -199,7 +199,7 @@ if ( status != 0 ):
     print "ERROR: Send_event failed: %d" % (status) 
     #print(output.decode("utf-8"))
     #print(stderr)
-    send_mail("send event command failed. The command was: \n" + sendcmd + "\n output: " + output + "\n stderr: " + stderr)
+    send_mail("send event command failed. The command was: \n" + sendcmd + "\n output: " + str(output) + "\n stderr: " + str(stderr))
 
 #retval = os.system(sendcmd)
 #if retval != 0:
