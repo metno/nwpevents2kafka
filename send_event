@@ -11,13 +11,11 @@ import socket
 import smtplib
 import time
 
-from random import randint
-from time import sleep
-
 try:  # py3
     from shlex import quote
 except ImportError:  # py2
     from pipes import quote
+
 
 def print_version():
     send_event_version = "alfa-baluba"
@@ -26,24 +24,14 @@ def print_version():
 for x in xrange(len(sys.argv)):
     if sys.argv[x-1] == '-v':
         print_version()
-        sys.exit(0)        
+        sys.exit(0)
 
     if sys.argv[x-1] == '--version':
         print_version()
-        sys.exit(0)        
+        sys.exit(0)
 
+logfile = "/tmp/" + "events.log-" + os.environ['USER']
 
-
-
-#if '-v' or '--version' in sys.argv: 
-#    print_version();
-#    sys.exit(0)
-
-
-
-
-
-logfile = "/tmp/" + "events.log-" +  os.environ['USER']
 
 def get_loginhost(server_list):
     for server in server_list:
@@ -52,14 +40,14 @@ def get_loginhost(server_list):
         #print "Doing %s" % cmd
         process = subprocess.Popen(cmd, shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
-        output,stderr = process.communicate()
+        output, stderr = process.communicate()
         status = process.poll()
         #if ( status != 0 ):
         #    print(output.decode("utf-8"))
         #    print(stderr)
         if status == 0:
             return server
-        
+
     return None
 
 
@@ -76,7 +64,7 @@ Subject: Error sending event from %s@%s
 
     try:
         smtpObj = smtplib.SMTP('localhost')
-        smtpObj.sendmail(sender, receivers, message)         
+        smtpObj.sendmail(sender, receivers, message)
     except smtplib.SMTPException:
         os.system("echo Error: unable to send emai " + " >> " + logfile)
 
@@ -112,11 +100,11 @@ try:
 
     if options.event_source is None:
         options.event_source = raw_input('event_source:')
-    
+
     if options.kvpairs:
         arr = options.kvpairs.split(',')
         for e in arr:
-            kv=e.split('=')
+            kv = e.split('=')
             kvpairs[kv[0]] = kv[1]
 
     if options.topic is None:
@@ -127,11 +115,9 @@ except:
     parser.print_help()
     sys.exit(-1)
 
-
-
 termin = utc_datetime.strftime("%Y%m%dT") + options.cycle + "Z"
 payload = {
-    'termin':  termin ,
+    'termin':  termin,
     'event_name': options.event_name,
     'event_target': options.event_target,
     'time_sendt': options.time_sendt,
@@ -145,8 +131,6 @@ for k in kvpairs:
 
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 
-
-
 #console_producer = "/home/ubuntu/kafka/kafka-0.10.0.0-src/bin/kafka-console-producer.sh"
 #server_list = [
 #               'os-157-249-176-113.ares.met.no',
@@ -154,18 +138,17 @@ scriptdir = os.path.dirname(os.path.abspath(__file__))
 
 console_producer = "/opt/kafka/kafka_2.11-0.10.0.0/bin/kafka-console-producer.sh"
 server_list = [
-               'os-157-249-176-210.ares.met.no',
-               'os-157-249-176-211.ares.met.no',
-               'os-157-249-176-212.ares.met.no',
-               'os-157-249-176-213.ares.met.no',
-               'os-157-249-176-214.ares.met.no',
-               ]
+    'os-157-249-176-210.ares.met.no',
+    'os-157-249-176-211.ares.met.no',
+    'os-157-249-176-212.ares.met.no',
+    'os-157-249-176-213.ares.met.no',
+    'os-157-249-176-214.ares.met.no',
+]
 
 random.shuffle(server_list)
-broker_list=""
+broker_list = ""
 for server in server_list:
-    broker_list += server + ":9092," 
-
+    broker_list += server + ":9092,"
 
 login_host = None
 for x in range(0, 6):
@@ -195,11 +178,13 @@ process = subprocess.Popen(sendcmd, shell=True,
 output, stderr = process.communicate()
 status = process.poll()
 
-if ( status != 0 ):
-    print "ERROR: Send_event failed: %d" % (status) 
+if (status != 0):
+    print "ERROR: Send_event failed: %d" % (status)
     #print(output.decode("utf-8"))
     #print(stderr)
     send_mail("send event command failed. The command was: \n" + sendcmd + "\n output: " + str(output) + "\n stderr: " + str(stderr))
+
+exit(status)
 
 #retval = os.system(sendcmd)
 #if retval != 0:
