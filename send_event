@@ -171,19 +171,27 @@ EOF
 
 #print sendcmd
 
-process = subprocess.Popen(sendcmd, shell=True,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT,
-                           close_fds=True)
-output, stderr = process.communicate()
-status = process.poll()
+for tryno in range(0, 5):
+    process = subprocess.Popen(sendcmd, shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
+                               close_fds=True)
+    output, stderr = process.communicate()
+    status = process.poll()
+    
+    if (status != 0):
+        print "ERROR: Send_event failed: %d. Retrying" % (status)
+        time.sleep(3)
+    else:
+        break
 
-if (status != 0):
-    print "ERROR: Send_event failed: %d" % (status)
-    #print(output.decode("utf-8"))
-    #print(stderr)
-    send_mail("send event command failed. The command was: \n" + sendcmd + "\n output: " + str(output) + "\n stderr: " + str(stderr))
-
+#print(output.decode("utf-8"))
+#print(stderr)
+send_mail("send event command failed. The command was: \n" + sendcmd 
+          + "\n output: " + str(output) 
+          + "\n stderr: " + str(stderr)
+          + "\status: " + str(status) )
+        
 exit(status)
 
 #retval = os.system(sendcmd)
