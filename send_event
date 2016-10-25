@@ -187,10 +187,11 @@ for tryno in range(0, 5):
 
 #print(output.decode("utf-8"))
 #print(stderr)
-send_mail("send event command failed. The command was: \n" + sendcmd 
-          + "\n output: " + str(output) 
-          + "\n stderr: " + str(stderr)
-          + "\status: " + str(status) )
+if status != 0:
+    send_mail("send event command failed. The command was: \n" + sendcmd 
+              + "\n output: " + str(output) 
+              + "\n stderr: " + str(stderr)
+              + "\n status: " + str(status) )
         
 exit(status)
 
