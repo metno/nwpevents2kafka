@@ -155,7 +155,7 @@ login_host = None
 for x in range(0, 6):
     login_host = get_loginhost(server_list)
     print "LOGIN HOST IS: %s" % (login_host)
-
+    break
 #    if login_host is None:
 #        time.sleep(3)
 #    else:
