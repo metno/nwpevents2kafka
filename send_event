@@ -36,20 +36,21 @@ logfile = "/tmp/" + "events.log-" + os.environ['USER']
 def get_loginhost(server_list):
     for server in server_list:
 
+
         cmd = "ssh  -o ConnectionAttempts=2 -o StrictHostKeyChecking=no -o ConnectTimeout=4 kafka@" + server + " /bin/true"
-        #print "Doing %s" % cmd
+        print "Doing %s" % cmd
         process = subprocess.Popen(cmd, shell=True,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.STDOUT, 
+                                   close_fds=True)
         output, stderr = process.communicate()
         status = process.poll()
-        #if ( status != 0 ):
-        #    print(output.decode("utf-8"))
-        #    print(stderr)
-        if status == 0:
+        if ( status != 0 ):
+            print(output.decode("utf-8"))
+            print(stderr)
+            return None
+        else:
             return server
-
-    return None
-
 
 def send_mail(body):
     sender = os.environ['USER'] + "@" + socket.gethostname()
@@ -153,10 +154,13 @@ for server in server_list:
 login_host = None
 for x in range(0, 6):
     login_host = get_loginhost(server_list)
-    if login_host is None:
-        time.sleep(3)
-    else:
-        break
+    print "LOGIN HOST IS: %s" % (login_host)
+
+#    if login_host is None:
+#        time.sleep(3)
+#    else:
+#        return login_host
+
 
 if login_host is None:
     send_mail("send event failed. No ssh login hosts available!\n" + quote(json.dumps(payload)))
