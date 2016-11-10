@@ -154,24 +154,21 @@ for server in server_list:
 login_host = None
 for x in range(0, 6):
     login_host = get_loginhost(server_list)
-    print "LOGIN HOST IS: %s" % (login_host)
-    break
-#    if login_host is None:
-#        time.sleep(3)
-#    else:
-#        return login_host
-
-
-if login_host is None:
-    send_mail("send event failed. No ssh login hosts available!\n" + quote(json.dumps(payload)))
-    print("ERROR send_even failed. No ssh login hosts available!. payload was: %s" % quote(json.dumps(payload)))
-    exit(-1)
+    if login_host is None:
+        time.sleep(10)
+    else:
+        break
 
 sendcmd = """
 ssh -o StrictHostKeyChecking=no kafka@""" + login_host + """ /bin/bash <<'EOF'
 set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """ --request-required-acks 1  --sync
 EOF
 """
+
+if login_host is None:
+    send_mail("send event failed. No ssh login hosts available!\n" + quote(json.dumps(payload)) + "\n The command to be run was: " + sendcmd)
+    print("ERROR send_even failed. No ssh login hosts available!. payload was: %s" % quote(json.dumps(payload)))
+    exit(-1)
 
 #print sendcmd
 
