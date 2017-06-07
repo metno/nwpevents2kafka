@@ -32,6 +32,10 @@ for x in xrange(len(sys.argv)):
 
 logfile = "/tmp/" + "events.log-" + os.environ['USER']
 
+IARG = ""
+if os.path.isfile(os.getenv('HOME') + "/.ssh/id_rsa-kafka") :
+    IARG = "-i " + os.getenv('HOME') + "/.ssh/id_rsa-kafka"
+
 
 def get_loginhost(server_list):
     for server in server_list:
