@@ -41,7 +41,7 @@ def get_loginhost(server_list):
     for server in server_list:
 
 
-        cmd = "ssh  -o ConnectionAttempts=2 -o StrictHostKeyChecking=no -o ConnectTimeout=4 kafka@" + server + " /bin/true"
+        cmd = "ssh  " + IARG + " -o ConnectionAttempts=2 -o StrictHostKeyChecking=no -o ConnectTimeout=4 kafka@" + server + " /bin/true"
         print "Doing %s" % cmd
         process = subprocess.Popen(cmd, shell=True,
                                    stdout=subprocess.PIPE, 
@@ -164,7 +164,7 @@ for x in range(0, 6):
         break
 
 sendcmd = """
-ssh -o StrictHostKeyChecking=no kafka@""" + str(login_host) + """ /bin/bash <<'EOF'
+ssh """ + IARG + """ -o StrictHostKeyChecking=no kafka@""" + str(login_host) + """ /bin/bash <<'EOF'
 set -o pipefail; echo """ + quote(json.dumps(payload)) + """ | """ + console_producer + """ --broker-list """ + broker_list + """ --topic """ + options.topic + """ --request-required-acks 1  --sync
 EOF
 """
