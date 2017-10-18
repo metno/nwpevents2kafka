@@ -58,7 +58,7 @@ def get_loginhost(server_list):
 
 def send_mail(body):
     sender = os.environ['USER'] + "@" + socket.gethostname()
-    receivers = ",".join(['espenm@met.no'])
+    receivers = ",".join(['modellprod-systems@met.no'])
 
     message = """From: <%s>
 To: %s
